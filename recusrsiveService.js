@@ -1,11 +1,10 @@
-
 angular.module('recursive', [])
     /**
      * @ngdoc method
      */
     .factory('read', function($q, $timeout, CrudService) {
         var pageNumber = 0;
-        var allData = [];
+        var returnData = [];
         var limit = 0;
         var deferred;
         deferred = null;
@@ -14,15 +13,15 @@ angular.module('recursive', [])
                 if (!deferred) {
                     deferred = $q.defer();
                     pageNumber = 0;
-                    allData = [];
+                    returnData = [];
                 }
                 var self = this;
                 limit = query.parameters.limit || 100;
-                this.runQuery(query)
+                CrudService.read(query)
                     .then(function(result) {
                         if (result.data.length) {
                             angular.forEach(result.data, function(indRes) {
-                                allData.push(indRes);
+                                returnData.push(indRes);
                             });
                             $timeout(function() {
                                 pageNumber = pageNumber + 1;
@@ -31,51 +30,11 @@ angular.module('recursive', [])
                             }, 500);
 
                         } else {
-                            deferred.resolve({
-                                data: allData,
-                                status: 'success'
-                            });
+                            deferred.resolve(returnData);
                         }
-                    }, function() {
-                        if (options.strict) {
-                            deferred.reject({
-                                data: allData,
-                                status: 'error'
-                            });
-                        } else {
-                            if (allData.length) {
-                                deferred.resolve({
-                                    data: allData,
-                                    status: 'success'
-                                });
-                            } else {
-                                deferred.reject({
-                                    data: allData,
-                                    status: 'error'
-                                });
-                            }
-                        }
+                    }, function(error) {
+                        deferred.reject(error)
                     });
-                return deferred.promise;
-            },
-            runQuery: function(query) {
-                var deferred = $q.defer();
-                var CRUDRet = {
-                    success: function(result) {
-                        deferred.resolve(result);
-                    },
-                    error: function(error) {
-                        deferred.reject(error);
-                    }
-                };
-
-                CrudService.operation({
-                        op: 'read'
-                    },
-                    query,
-                    CRUDRet.success,
-                    CRUDRet.error
-                );
                 return deferred.promise;
             }
         };
